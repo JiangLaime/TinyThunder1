@@ -15,7 +15,6 @@ def main():
     args = parser.parse_args()
     players = int(args.players)
     keylist = generate_key_list(players)
-    print(keylist)
     print(pickle.dumps(keylist))
 
 

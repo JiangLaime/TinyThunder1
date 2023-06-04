@@ -42,9 +42,22 @@ def deepDecode(s, msgTypeCounter):
 
 num = 0
 
+
+import ast
+
+# 给定的字符串表示的列表
+
+
 if  __name__ =='__main__':
-    global num
-    print(num)
+    result_string = "{<Connection host=18.221.243.180>: <Result cmd='test -d charm' exited=1>}"
+
+    # 将字符串转换为有效的Python对象
+    result_list = ast.literal_eval(result_string)
+
+    # 遍历列表，获取exited的值
+    for connection, result in result_list.items():
+        exited = result.exited
+        print(exited)
 
 
 

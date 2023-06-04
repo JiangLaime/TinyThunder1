@@ -39,39 +39,11 @@ def host_type(c):
 def syncKeys(c):
     c.put('./*.keys', '~/')
 
+@task
+def install_dependencies(c):
+    pass
 # @task
-def install_dependencies():
-    sudo('apt-get update')
-    sudo('apt-get -y install python-gevent')
-    sudo('apt-get -y install git')
-    sudo('apt-get -y install python-socksipy')
-    sudo('apt-get -y install python-pip')
-    sudo('apt-get -y install python-dev')
-    sudo('apt-get -y install python-gmpy2')
-    sudo('apt-get -y install flex')
-    sudo('apt-get -y install bison')
-    sudo('apt-get -y install libgmp-dev')
-    sudo('apt-get -y install libssl-dev')
-    sudo('pip install pycrypto')
-    sudo('pip install ecdsa')
-    sudo('pip install zfec')
-    sudo('pip install gipc')
-    run('wget https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz')
-    run('tar -xvf pbc-0.5.14.tar.gz')
-    with cd('pbc-0.5.14'):
-        run('./configure')
-        run('make')
-        sudo('make install')
-    with settings(warn_only=True):
-        if run('test -d charm').failed:
-            run('git clone https://github.com/JHUISI/charm.git')
-        with cd('charm'):
-            run('git checkout dev')
-            run('./configure.sh')
-            sudo('python setup.py install')
-
-# @task
-def cloneRepo():
+def cloneRepo(c):
     run('git clone https://github.com/amiller/HoneyBadgerBFT.git')
     with cd('HoneyBadgerBFT'):
         run('git checkout another-dev')

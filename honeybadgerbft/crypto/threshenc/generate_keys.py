@@ -1,4 +1,4 @@
-from .tpke import dealer, serialize
+from tpke import dealer, serialize
 import argparse
 import pickle
 

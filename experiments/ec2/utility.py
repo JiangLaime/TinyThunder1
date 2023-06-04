@@ -1,9 +1,15 @@
 import argparse
 import boto.ec2
-from fabric import task, Connection
+import gevent
+from fabric import task, Connection, Config
 from fabric import ThreadingGroup
+from gevent import Greenlet
+
 import sys, os
 import time
+
+from invoke import Responder
+
 if not boto.config.has_section('ec2'):
     boto.config.add_section('ec2')
     boto.config.setbool('ec2','use-sigv4',True)
@@ -137,13 +143,88 @@ def ipAll():
         result += get_ec2_instances_ip(region) or []
     open('hosts','w').write('\n'.join(result))
     group = ThreadingGroup(','.join(result))
-    group.run('rm ~/hosts')
+    group.run('rm ~/hosts',warn=True)
     group.put('./hosts', '/home/admin/hosts')
     return result
 
 def syncKeys():
-    host = ','.join([l for l in open('hosts', 'r').read().split('\n') if l])
-    ThreadingGroup(host).put('./*.keys', '/home/admin/hosts')
+    hosts = ','.join([l for l in open('hosts', 'r').read().split('\n') if l])
+    ThreadingGroup(hosts).put('./*.keys', '/home/admin/hosts')
+
+def install_dependencies():
+    hosts0 = [l for l in open('hosts', 'r').read().split('\n') if l]
+    hosts1 = ','.join([l for l in open('hosts', 'r').read().split('\n') if l])
+    group = ThreadingGroup(hosts1)
+    sudopass = Responder(
+        pattern=r'\[sudo\] password:',
+        response='asdasd\n',
+    )
+    group.sudo('apt-get update',pty=True,watchers=[sudopass])
+    group.sudo('apt-get -y install python3-gevent',pty=True,watchers=[sudopass])
+    group.sudo('apt-get -y install git',pty=True,watchers=[sudopass])
+    group.sudo('apt-get -y install python3-socks',pty=True,watchers=[sudopass])
+    group.sudo('apt-get -y install python3-pip',pty=True,watchers=[sudopass])
+    group.sudo('apt-get -y install python3-dev',pty=True,watchers=[sudopass])
+    group.sudo('apt-get -y install python3-gmpy2',pty=True,watchers=[sudopass])
+    group.sudo('apt-get -y install flex',pty=True,watchers=[sudopass])
+    group.sudo('apt-get -y install bison',pty=True,watchers=[sudopass])
+    group.sudo('apt-get -y install libgmp-dev',pty=True,watchers=[sudopass])
+    group.sudo('apt-get -y install libssl-dev',pty=True,watchers=[sudopass])
+    group.sudo('pip3 install pycrypto',pty=True,watchers=[sudopass])
+    group.sudo('pip3 install ecdsa',pty=True,watchers=[sudopass])
+    group.sudo('pip3 install zfec',pty=True,watchers=[sudopass])
+    group.sudo('pip3 install gipc',pty=True,watchers=[sudopass])
+    group.run('wget https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz')
+    group.run('tar -xvf pbc-0.5.14.tar.gz',hide=True)
+
+
+
+    def installcharm(h):
+        conn = Connection(h)
+        conn.run('git clone https://github.com/JHUISI/charm.git')
+        with conn.cd('charm'):
+            conn.run('git checkout dev',hide=True)
+            conn.run('sudo ./configure.sh',hide=True,watchers=[sudopass])
+            conn.run('sudo python3 setup.py install',hide=True,watchers=[sudopass])
+            conn.run('pwd')
+    greenletlist1 = []
+    for i,h in enumerate(hosts0):
+        greenlet = Greenlet(installcharm,h)
+        greenlet.start()
+        greenletlist1.append(greenlet)
+    gevent.joinall(greenletlist1)
+
+    def installpbc(h):
+        conn = Connection(h)
+        with conn.cd('pbc-0.5.14'):
+            conn.run('./configure', hide=True)
+            conn.run('make', hide=True)
+            conn.run('sudo make install', pty=True, watchers=[sudopass], warn=True)
+            conn.run('pwd')
+
+    greenletlist0 = []
+    for i, h in enumerate(hosts0):
+        greenlet = Greenlet(installpbc, h)
+        greenlet.start()
+        greenletlist0.append(greenlet)
+    gevent.joinall(greenletlist0)
+
+def git_pull():
+    hosts0 = [l for l in open('hosts', 'r').read().split('\n') if l]
+
+    def pullHB(h):
+        conn = Connection(h)
+        conn.run('git clone https://github.com/JiangLaime/TinyThunder.git')
+        with conn.cd('~/TinyThunder'):
+            conn.run('git pull', hide=True)
+            conn.run('pwd')
+
+    greenletlist0 = []
+    for i, h in enumerate(hosts0):
+        greenlet = Greenlet(pullHB, h)
+        greenlet.start()
+        greenletlist0.append(greenlet)
+    gevent.joinall(greenletlist0)
 
 def getIP():
     return [l for l in open('hosts', 'r').read().split('\n') if l]
@@ -245,18 +326,6 @@ def stopProtocol():
 #short-cuts
 
 c = callFabFromIPList
-
-def sk():
-    c(getIP(), 'syncKeys')
-
-def id():
-    c(getIP(), 'install_dependencies')
-
-def gp():
-    c(getIP(), 'git_pull')
-
-def rp(srp):
-    c(getIP(), 'runProtocol:%s' % srp)
 
 if  __name__ =='__main__':
   try: __IPYTHON__
