@@ -5,12 +5,12 @@ monkey.patch_all()
 
 from gevent.queue import *
 from gevent import Greenlet
-from ..misc.utils import bcolors, mylog, initiateThresholdSig
-from ..misc.includeTransaction import honestParty
+from misc.utils import bcolors, mylog, initiateThresholdSig
+from misc.includeTransaction import honestParty
 import gevent
 import os
-from ..misc.utils import myRandom as random
-from ..misc.utils  import ACSException, checkExceptionPerGreenlet, getSignatureCost, encodeTransaction, getKeys,  \
+from misc.utils import myRandom as random
+from misc.utils  import ACSException, checkExceptionPerGreenlet, getSignatureCost, encodeTransaction, getKeys,  \
     deepEncode, deepDecode, randomTransaction, initiateECDSAKeys, initiateThresholdEnc, finishTransactionLeap
 
 import time

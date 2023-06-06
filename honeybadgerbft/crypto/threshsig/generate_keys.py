@@ -1,4 +1,4 @@
-from .boldyreva import dealer, serialize
+from boldyreva import dealer, serialize
 import argparse
 import pickle
 
